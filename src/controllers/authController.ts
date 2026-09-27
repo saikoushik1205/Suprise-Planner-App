@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 
+import { TEST_CREW, TEST_CUSTOMER } from '../config/testAccounts.js';
 import { User, type CrewStatus, type UserRole } from '../models/User.js';
+import { seedTestAccounts } from '../services/seedTestAccounts.js';
 import { AppError } from '../utils/AppError.js';
 import { generateToken } from '../utils/generateToken.js';
 
@@ -17,6 +19,35 @@ function isPasswordStrong(password: string): boolean {
 
 function readRole(value: unknown): UserRole {
   return value === 'crew' ? 'crew' : 'customer';
+}
+
+function readRequestedRole(value: unknown): UserRole | undefined {
+  if (value === 'crew' || value === 'customer') {
+    return value;
+  }
+  return undefined;
+}
+
+function officialTestPassword(email: string): string | undefined {
+  if (email === TEST_CREW.email) {
+    return TEST_CREW.password;
+  }
+  if (email === TEST_CUSTOMER.email) {
+    return TEST_CUSTOMER.password;
+  }
+  return undefined;
+}
+
+async function refreshOfficialTestAccount(email: string, password: string) {
+  if (officialTestPassword(email) !== password) {
+    return;
+  }
+
+  try {
+    await seedTestAccounts();
+  } catch (error) {
+    console.error('Failed to refresh sandbox test accounts.', error);
+  }
 }
 
 function denyCrewAccess(status: CrewStatus | undefined): never {
@@ -141,11 +172,14 @@ export async function signup(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   const email = normalizeEmail(req.body?.email);
-  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
+  const requestedRole = readRequestedRole(req.body?.role);
 
   if (!email || !password) {
     throw new AppError('Email and password are required.', 400);
   }
+
+  await refreshOfficialTestAccount(email, password);
 
   const user = await User.findOne({ email }).select('+passwordHash');
   const matches = user ? await bcrypt.compare(password, user.passwordHash) : false;
@@ -154,6 +188,14 @@ export async function login(req: Request, res: Response) {
   }
 
   const role = user.role ?? 'customer';
+  if (requestedRole && requestedRole !== role) {
+    throw new AppError(
+      requestedRole === 'crew'
+        ? 'This is a customer account. Use the crew sandbox login from Continue as Crew.'
+        : 'This is a crew account. Sign in from Continue as Crew.',
+      403,
+    );
+  }
   if (role === 'crew' && user.crewStatus !== 'approved') {
     denyCrewAccess(user.crewStatus);
   }
