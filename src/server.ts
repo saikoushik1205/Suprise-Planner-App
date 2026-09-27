@@ -5,6 +5,7 @@ import express from 'express';
 import { connectDatabase, getDatabaseStatus } from './config/database.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authRoutes } from './routes/authRoutes.js';
+import { crewRoutes } from './routes/crewRoutes.js';
 import { surpriseRoutes } from './routes/surpriseRoutes.js';
 
 dotenv.config();
@@ -53,6 +54,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/crew', crewRoutes);
 app.use('/api/surprises', surpriseRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
