@@ -5,6 +5,7 @@ export type SurpriseStatus = (typeof SURPRISE_STATUSES)[number];
 
 export type SurpriseDocument = {
   userId: Types.ObjectId;
+  assignedCrewId?: Types.ObjectId;
   title: string;
   recipientName: string;
   occasion: string;
@@ -13,6 +14,10 @@ export type SurpriseDocument = {
   description: string;
   status: SurpriseStatus;
   city?: string;
+  venue?: string;
+  landmark?: string;
+  lat?: number;
+  lng?: number;
   relationship?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -24,6 +29,11 @@ const surpriseSchema = new Schema<SurpriseDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
+    },
+    assignedCrewId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       index: true,
     },
     title: {
@@ -63,6 +73,20 @@ const surpriseSchema = new Schema<SurpriseDocument>(
     city: {
       type: String,
       trim: true,
+    },
+    venue: {
+      type: String,
+      trim: true,
+    },
+    landmark: {
+      type: String,
+      trim: true,
+    },
+    lat: {
+      type: Number,
+    },
+    lng: {
+      type: Number,
     },
     relationship: {
       type: String,

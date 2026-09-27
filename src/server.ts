@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authRoutes } from './routes/authRoutes.js';
 import { crewRoutes } from './routes/crewRoutes.js';
 import { surpriseRoutes } from './routes/surpriseRoutes.js';
+import { seedTestAccounts } from './services/seedTestAccounts.js';
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ app.use(errorHandler);
 async function start() {
   try {
     await connectDatabase();
+    await seedTestAccounts();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

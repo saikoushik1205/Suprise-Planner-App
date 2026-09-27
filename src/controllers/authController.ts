@@ -38,6 +38,8 @@ function publicUser(user: {
   email: string;
   role?: UserRole;
   crewStatus?: CrewStatus;
+  phone?: string;
+  city?: string;
 }) {
   const role = user.role ?? 'customer';
   return {
@@ -46,6 +48,8 @@ function publicUser(user: {
     email: user.email,
     role,
     crewStatus: role === 'crew' ? user.crewStatus ?? 'pending' : null,
+    phone: user.phone,
+    city: user.city,
   };
 }
 
@@ -112,6 +116,8 @@ export async function signup(req: Request, res: Response) {
     email: user.email,
     role: user.role,
     crewStatus: user.crewStatus,
+    phone: user.phone,
+    city: user.city,
   });
 
   if (role === 'crew') {
@@ -158,6 +164,8 @@ export async function login(req: Request, res: Response) {
     email: user.email,
     role,
     crewStatus: user.crewStatus,
+    phone: user.phone,
+    city: user.city,
   });
 
   res.json({
@@ -184,6 +192,8 @@ export async function me(req: Request, res: Response) {
         email: user.email,
         role: user.role,
         crewStatus: user.crewStatus,
+        phone: user.phone,
+        city: user.city,
       }),
     },
   });

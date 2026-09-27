@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { isValidObjectId } from 'mongoose';
 
 import { Surprise, type SurpriseStatus } from '../models/Surprise.js';
+import { findDefaultCrewId } from '../services/seedTestAccounts.js';
 import { AppError } from '../utils/AppError.js';
 
 const FRONTEND_STATUS: Record<string, SurpriseStatus> = {
@@ -16,9 +17,10 @@ function toDateKey(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-function serializeSurprise(item: {
+export function serializeSurprise(item: {
   id?: string;
   _id?: unknown;
+  assignedCrewId?: unknown;
   title: string;
   recipientName: string;
   occasion: string;
@@ -27,6 +29,10 @@ function serializeSurprise(item: {
   description: string;
   status: SurpriseStatus;
   city?: string;
+  venue?: string;
+  landmark?: string;
+  lat?: number;
+  lng?: number;
   relationship?: string;
   createdAt: Date;
 }) {
@@ -40,7 +46,12 @@ function serializeSurprise(item: {
     description: item.description,
     status: item.status,
     city: item.city,
+    venue: item.venue,
+    landmark: item.landmark,
+    lat: item.lat,
+    lng: item.lng,
     relationship: item.relationship,
+    assignedCrewId: item.assignedCrewId ? String(item.assignedCrewId) : undefined,
     createdAt: item.createdAt.toISOString(),
   };
 }
@@ -104,6 +115,10 @@ function readCreateInput(body: Record<string, unknown>) {
   }
   const status = parsedStatus ?? 'planned';
   const city = typeof body.city === 'string' ? body.city.trim() : undefined;
+  const venue = typeof body.venue === 'string' ? body.venue.trim() : undefined;
+  const landmark = typeof body.landmark === 'string' ? body.landmark.trim() : undefined;
+  const lat = typeof body.lat === 'number' ? body.lat : Number(body.lat);
+  const lng = typeof body.lng === 'number' ? body.lng : Number(body.lng);
   const relationship = typeof body.relationship === 'string' ? body.relationship.trim() : undefined;
 
   if (!title) {
@@ -122,13 +137,28 @@ function readCreateInput(body: Record<string, unknown>) {
     throw new AppError('Budget must be a valid number.', 400);
   }
 
-  return { title, recipientName, occasion, date, budget, description, status, city, relationship };
+  return {
+    title,
+    recipientName,
+    occasion,
+    date,
+    budget,
+    description,
+    status,
+    city,
+    venue,
+    landmark,
+    lat: Number.isFinite(lat) ? lat : undefined,
+    lng: Number.isFinite(lng) ? lng : undefined,
+    relationship,
+  };
 }
 
 export async function createSurprise(req: Request, res: Response) {
   const userId = readUserId(req);
   const input = readCreateInput(req.body ?? {});
-  const surprise = await Surprise.create({ ...input, userId });
+  const assignedCrewId = await findDefaultCrewId();
+  const surprise = await Surprise.create({ ...input, userId, assignedCrewId });
 
   res.status(201).json({
     success: true,
@@ -169,6 +199,10 @@ export async function updateSurprise(req: Request, res: Response) {
   surprise.description = input.description;
   surprise.status = input.status;
   surprise.city = input.city;
+  surprise.venue = input.venue;
+  surprise.landmark = input.landmark;
+  surprise.lat = input.lat;
+  surprise.lng = input.lng;
   surprise.relationship = input.relationship;
   await surprise.save();
 
